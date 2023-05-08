@@ -40,7 +40,8 @@ class SensorNeuron:
 
     def reward(self, x):
         # reward is clipped into range (-15; 15)
-        # making reward <- (0; 1) (regarding algorithm implementation video "sensory neurons provide value in a range (0; 1)")
+        # making reward <- (0; 1) (regarding algorithm implementation video
+        # "sensory neurons provide value in a range (0; 1)")
         return (x + 15.0) / 30.0
 
     def coins(self, x):
@@ -71,7 +72,7 @@ class SensorNeuron:
         # 'tall' - better than small, fireball, I assume, as well
         if x == "small":
             return 0.0
-        elif x == "tall":
+        if x == "tall":
             return 1.0
         return 1.0
 
@@ -87,7 +88,7 @@ class SensorNeuron:
         # Without glitching through game mechanics, the maximum y could be 400 (very hardly of course)
         return x / 400.0
 
-    def no_action(self, x):
+    def no_action(self, x):  # pylint: disable = unused-argument
         # No action selected for this neuron - action unindentified
         return 0.0
 

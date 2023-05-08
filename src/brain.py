@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import networkx as netx
 import numpy as np
 
-matplotlib.use("TkAgg")
+from neurons import ActionNeuron, InnerNeuron, SensorNeuron
 
-from src.neurons import *
+matplotlib.use("TkAgg")
 
 
 class Brain:  # Directional graph
@@ -19,15 +19,14 @@ class Brain:  # Directional graph
         self.connections = self.remove_redundant_connections(self.connections)
         self.brain = self.make_brain_dictionary(self.connections)
         self.sense_neurons_mapping = config.sense_neurons_mapping
+        self.brain_graph = None
 
     def __str__(self):
         str_brain = "{\n"
         for key, value in self.brain.items():
             str_connections = "{ \n"
             for neuron, weight in value.items():
-                str_connections += (
-                    " " * 13 + str(neuron) + " :  " + str(weight) + ", \n"
-                )
+                str_connections += " " * 13 + str(neuron) + " :  " + str(weight) + ", \n"
             str_connections += "          }"
             str_brain += f"   {str(key)} : {str_connections}" + "\n"
         str_brain += "}"
@@ -44,9 +43,7 @@ class Brain:  # Directional graph
         for source, sinks in self.brain.items():
             if "SN" in str(source):
                 for sink, weight in sinks.items():
-                    activation_input_type = self.sense_neurons_mapping.get(
-                        str(source), ""
-                    )
+                    activation_input_type = self.sense_neurons_mapping.get(str(source), "")
                     x = sense_input.get(activation_input_type, 0.0)
                     x = source(x, weight)
                     activated_sinks.append((sink, x))
@@ -57,19 +54,16 @@ class Brain:  # Directional graph
 
         # Inner Neurons activation
         # Find some Inner Neuron
-        for new_source, new_x in activated_sinks:
+        for new_source, _ in activated_sinks:
             if "IN" in str(new_source):
                 current_in = str(new_source)
                 # For every activation assigned to the chosen Inner Neuron collect input
-                in_input = [
-                    x for source, x in activated_sinks if str(source) == current_in
-                ]
+                in_input = [x for source, x in activated_sinks if str(source) == current_in]
 
-                # Remove registered activation from the list - filter list, so it could not interfere with later runs
+                # Remove registered activation from the list
+                # - filter list, so it could not interfere with later runs
                 activated_sinks = [
-                    (node, activation)
-                    for (node, activation) in activated_sinks
-                    if str(node) != current_in
+                    (node, activation) for (node, activation) in activated_sinks if str(node) != current_in
                 ]
                 # Now determine, to which new sinks assign this activation, if input exists
                 if in_input:
@@ -88,18 +82,15 @@ class Brain:  # Directional graph
         # First declare output activations list
         output_activations = []
         # Find some Action Neuron - begining analogous to IN activation
-        for new_source, new_x in activated_sinks:
+        for new_source, _ in activated_sinks:
             if "AN" in str(new_source):
                 current_an = str(new_source)
                 # For every activation assigned to the chosen Action Neuron collect input
-                an_input = [
-                    x for source, x in activated_sinks if str(source) == current_an
-                ]
-                # Remove registered activation from the list - filter list, so it could not interfere with later runs
+                an_input = [x for source, x in activated_sinks if str(source) == current_an]
+                # Remove registered activation from the list
+                # - filter list, so it could not interfere with later runs
                 activated_sinks = [
-                    (node, activation)
-                    for (node, activation) in activated_sinks
-                    if str(node) != current_an
+                    (node, activation) for (node, activation) in activated_sinks if str(node) != current_an
                 ]
                 # Now calculate activations for every action neuron and put them in a list, if inputs exist
                 if an_input:
@@ -115,9 +106,7 @@ class Brain:  # Directional graph
         # Formulate output
         action_neuron, activation = output_activations[an_index]
 
-        return (
-            action_neuron.activate()
-        )  # Provides number of in-game action - neuron's type id
+        return action_neuron.activate()  # Provides number of in-game action - neuron's type id
 
     def display_brain(self):
         self.brain_graph = netx.DiGraph()
@@ -147,9 +136,7 @@ class Brain:  # Directional graph
         )
         netx.draw_networkx_edges(self.brain_graph, pos)
         netx.draw_networkx_edge_labels(self.brain_graph, pos, edge_labels=weight_labels)
-        netx.draw_networkx_labels(
-            self.brain_graph, pos, labels=node_labels, font_size=10
-        )
+        netx.draw_networkx_labels(self.brain_graph, pos, labels=node_labels, font_size=10)
         plt.show()
 
     def make_brain_dictionary(self, connections):  # make brain graph
@@ -157,10 +144,8 @@ class Brain:  # Directional graph
         for connection in connections:
             source_neuron, sink_neuron, weight = connection
             appended = False
-            for existing_neuron in brain.keys():
-                if source_neuron.type_id == existing_neuron.type_id and str(
-                    source_neuron
-                ) == str(existing_neuron):
+            for existing_neuron in brain:
+                if source_neuron.type_id == existing_neuron.type_id and str(source_neuron) == str(existing_neuron):
                     # Appends sink neuron to existing source neuron key
 
                     # Every neuron at init stage is assigned with a different reference,
@@ -173,9 +158,9 @@ class Brain:  # Directional graph
             if not appended:
                 # Adds new source neuron and corresponding sink neuron to it
                 brain[source_neuron] = [(sink_neuron, weight)]
-        for key, value in brain.items():
+        for key in brain:
             # Switching lists in values instead of dictionaries
-            brain[key] = {sink_neuron: weight for sink_neuron, weight in brain[key]}
+            brain[key] = dict(brain[key])
 
         return brain
 
@@ -204,7 +189,8 @@ class Brain:  # Directional graph
                 neuron_list.append((sink, 0, 1))
 
         # Find redundant neurons
-        # Redundant neurons - INs with 0 inputs OR 0 outputs are redundant - connections with them will be removed - names of the neurons
+        # Redundant neurons - INs with 0 inputs OR 0 outputs are redundant
+        # - connections with them will be removed - names of the neurons
         redundant_neurons = [
             str(neuron)
             for (neuron, num_inputs, num_outputs) in neuron_list
@@ -215,8 +201,7 @@ class Brain:  # Directional graph
         connections = [
             (source, sink, weight)
             for (source, sink, weight) in connections
-            if (not str(source) in redundant_neurons)
-            and (not str(sink) in redundant_neurons)
+            if (not str(source) in redundant_neurons) and (not str(sink) in redundant_neurons)
         ]
 
         # print(np.array([(str(source), str(sink), weight) for (source, sink, weight) in connections]))
@@ -224,9 +209,7 @@ class Brain:  # Directional graph
         # print(np.array([neuron for neuron in redundant_neurons]))
         return connections
 
-    def read_gene(
-        self, gene, num_sensory_neurons, num_inner_neurons, num_action_neurons
-    ):
+    def read_gene(self, gene, num_sensory_neurons, num_inner_neurons, num_action_neurons):
         # Hex string to Bin string
         gene = format(int(gene, 16), "032b")
 
@@ -270,12 +253,5 @@ class Brain:  # Directional graph
 
         return source_neuron, sink_neuron, weight
 
-    def read_genome(
-        self, genome, num_sensory_neurons, num_inner_neurons, num_action_neurons
-    ):
-        return [
-            self.read_gene(
-                gene, num_sensory_neurons, num_inner_neurons, num_action_neurons
-            )
-            for gene in genome
-        ]
+    def read_genome(self, genome, num_sensory_neurons, num_inner_neurons, num_action_neurons):
+        return [self.read_gene(gene, num_sensory_neurons, num_inner_neurons, num_action_neurons) for gene in genome]
