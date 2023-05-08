@@ -1,3 +1,5 @@
+from typing import Dict
+
 import matplotlib
 import matplotlib.pyplot as plt
 import networkx as netx
@@ -35,6 +37,22 @@ class Brain:  # Directional graph
     # def forward(self, x): here initial x - dictionary of sense input values mapping
     def __call__(self, sense_input):  # functionality - debug this
         # This is the where calculated values are accumulated
+        activated_sinks = self.sensory_neurons_activation(sense_input)
+        activated_sinks = self.inner_neurons_activation(activated_sinks)
+        output_activations = self.action_neurons_activation(activated_sinks)
+
+        # Find index of the action neuron having the largest activation
+        _, an_index = np.argmax(
+            np.array([(str(sink), value) for (sink, value) in output_activations]),
+            axis=0,
+        )
+
+        # Formulate output
+        action_neuron, activation = output_activations[an_index]  # pylint:disable = unused-variable
+
+        return action_neuron.activate()  # Provides number of in-game action - neuron's type id
+
+    def sensory_neurons_activation(self, sense_input: Dict):
         activated_sinks = []
         x = 0.0
         # Sensory Neurons activation
@@ -48,10 +66,9 @@ class Brain:  # Directional graph
                     x = source(x, weight)
                     activated_sinks.append((sink, x))
 
-        # print("ACTIVATED SINKS (IN):")
-        # print(np.array([(str(sink), value) for (sink, value) in activated_sinks]))
-        # print("")
+        return activated_sinks
 
+    def inner_neurons_activation(self, activated_sinks):
         # Inner Neurons activation
         # Find some Inner Neuron
         for new_source, _ in activated_sinks:
@@ -68,16 +85,15 @@ class Brain:  # Directional graph
                 # Now determine, to which new sinks assign this activation, if input exists
                 if in_input:
                     for source, sinks in self.brain.items():
-                        if current_in == str(source):
-                            # Calculate and assign new activations
-                            for sink, weight in sinks.items():
-                                x = source(in_input, weight)
-                                activated_sinks.append((sink, x))
+                        activated_sinks = [
+                            (sink, source(in_input, weight))
+                            for sink, weight in sinks.items()
+                            if current_in == str(source)
+                        ]
 
-        # print("ACTIVATED SINKS (AN):")
-        # print(np.array([(str(sink), value) for (sink, value) in activated_sinks]))
-        # print("")
+        return activated_sinks
 
+    def action_neurons_activation(self, activated_sinks):
         # Action Neurons activation
         # First declare output activations list
         output_activations = []
@@ -97,16 +113,7 @@ class Brain:  # Directional graph
                     x = new_source(an_input)
                     output_activations.append((new_source, x))
 
-        # Find index of the action neuron having the largest activation
-        _, an_index = np.argmax(
-            np.array([(str(sink), value) for (sink, value) in output_activations]),
-            axis=0,
-        )
-
-        # Formulate output
-        action_neuron, activation = output_activations[an_index]
-
-        return action_neuron.activate()  # Provides number of in-game action - neuron's type id
+        return output_activations
 
     def display_brain(self):
         self.brain_graph = netx.DiGraph()

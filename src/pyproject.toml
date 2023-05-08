@@ -13,8 +13,6 @@ python = "^3.10"
 min-public-methods=0
 disable=[
     "missing-docstring",
-    "too-many-locals",
-    "too-many-nested-blocks",
 ]
 good-names=[
     "x",
