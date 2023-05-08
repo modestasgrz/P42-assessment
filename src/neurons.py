@@ -52,8 +52,7 @@ class SensorNeuron:
         # Flag value is either True (= 1) or False (= 0)
         if x:
             return 1.0
-        else:
-            return 0.0
+        return 0.0
 
     def life(self, x):
         # Maximum number of available lifes is a member of {3; 2; 1}
@@ -74,8 +73,7 @@ class SensorNeuron:
             return 0.0
         elif x == "tall":
             return 1.0
-        else:
-            return 1.0
+        return 1.0
 
     def time(self, x):
         # Time starts at 400

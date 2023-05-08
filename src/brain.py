@@ -21,12 +21,12 @@ class Brain:  # Directional graph
         self.sense_neurons_mapping = config.sense_neurons_mapping
 
     def __str__(self):
-        str_brain = "{" + "\n"
+        str_brain = "{\n"
         for key, value in self.brain.items():
             str_connections = "{ \n"
             for neuron, weight in value.items():
                 str_connections += (
-                    "             " + str(neuron) + " :  " + str(weight) + ", \n"
+                    " " * 13 + str(neuron) + " :  " + str(weight) + ", \n"
                 )
             str_connections += "          }"
             str_brain += f"   {str(key)} : {str_connections}" + "\n"
@@ -46,10 +46,8 @@ class Brain:  # Directional graph
                 for sink, weight in sinks.items():
                     activation_input_type = self.sense_neurons_mapping.get(
                         str(source), ""
-                    )  # Default get value = ""
-                    x = sense_input.get(
-                        activation_input_type, 0.0
-                    )  # Default get value = 0.0
+                    )
+                    x = sense_input.get(activation_input_type, 0.0)
                     x = source(x, weight)
                     activated_sinks.append((sink, x))
 
@@ -63,10 +61,10 @@ class Brain:  # Directional graph
             if "IN" in str(new_source):
                 current_in = str(new_source)
                 # For every activation assigned to the chosen Inner Neuron collect input
-                in_input = []
-                for source, x in activated_sinks:
-                    if str(source) == current_in:
-                        in_input.append(x)
+                in_input = [
+                    x for source, x in activated_sinks if str(source) == current_in
+                ]
+
                 # Remove registered activation from the list - filter list, so it could not interfere with later runs
                 activated_sinks = [
                     (node, activation)
@@ -74,7 +72,7 @@ class Brain:  # Directional graph
                     if str(node) != current_in
                 ]
                 # Now determine, to which new sinks assign this activation, if input exists
-                if len(in_input) > 0:
+                if in_input:
                     for source, sinks in self.brain.items():
                         if current_in == str(source):
                             # Calculate and assign new activations
@@ -94,10 +92,9 @@ class Brain:  # Directional graph
             if "AN" in str(new_source):
                 current_an = str(new_source)
                 # For every activation assigned to the chosen Action Neuron collect input
-                an_input = []
-                for source, x in activated_sinks:
-                    if str(source) == current_an:
-                        an_input.append(x)
+                an_input = [
+                    x for source, x in activated_sinks if str(source) == current_an
+                ]
                 # Remove registered activation from the list - filter list, so it could not interfere with later runs
                 activated_sinks = [
                     (node, activation)
@@ -105,13 +102,9 @@ class Brain:  # Directional graph
                     if str(node) != current_an
                 ]
                 # Now calculate activations for every action neuron and put them in a list, if inputs exist
-                if len(an_input) > 0:
+                if an_input:
                     x = new_source(an_input)
                     output_activations.append((new_source, x))
-
-        # print("OUTPUT ACTIONS (AN):")
-        # print(np.array([(str(sink), value) for (sink, value) in output_activations]))
-        # print("")
 
         # Find index of the action neuron having the largest activation
         _, an_index = np.argmax(
@@ -120,9 +113,8 @@ class Brain:  # Directional graph
         )
 
         # Formulate output
-        output = output_activations[an_index]  # (action_neuron, activation)
-        action_neuron, activation = output
-        # print("SELECTED ACTION NEURON: " + str(action_neuron) + ", WITH ACTIVATION: " + str(activation))
+        action_neuron, activation = output_activations[an_index]
+
         return (
             action_neuron.activate()
         )  # Provides number of in-game action - neuron's type id
@@ -162,7 +154,7 @@ class Brain:  # Directional graph
 
     def make_brain_dictionary(self, connections):  # make brain graph
         brain = {}
-        for i, connection in enumerate(connections):
+        for connection in connections:
             source_neuron, sink_neuron, weight = connection
             appended = False
             for existing_neuron in brain.keys():
